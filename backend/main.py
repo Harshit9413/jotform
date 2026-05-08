@@ -15,8 +15,6 @@ def seed_templates():
     from formcraft.models import Template
     db = SessionLocal()
     try:
-        if db.query(Template).count() > 0:
-            return
         templates = [
             {
                 "id": "contact",
@@ -119,11 +117,145 @@ def seed_templates():
                     {"type": "submit", "label": "Place Order", "color": "#1a56db"},
                 ],
             },
+            {
+                "id": "job_application",
+                "title": "Job Application Form",
+                "category": "hr",
+                "description": "Collect resumes and details from job applicants.",
+                "color": "#4f46e5",
+                "badge": "⭐ New",
+                "tags": ["hr", "jobs", "hiring", "recruitment"],
+                "score": 82,
+                "score_tip": "Add cover letter field to reach 95+",
+                "suggestions": [
+                    {"icon": "📝", "title": "Add Cover Letter", "text": "Helps assess communication skills.", "field": {"type": "textarea", "label": "Cover Letter", "placeholder": "Tell us why you're a great fit...", "required": False}},
+                    {"icon": "🔗", "title": "Add LinkedIn Profile", "text": "Speeds up background checks.", "field": {"type": "text", "label": "LinkedIn Profile URL", "placeholder": "https://linkedin.com/in/yourname", "required": False}},
+                ],
+                "fields": [
+                    {"type": "row2", "fields": [
+                        {"type": "text", "label": "Full Name", "placeholder": "Your full name", "required": True},
+                        {"type": "email", "label": "Email Address", "placeholder": "you@email.com", "required": True},
+                    ]},
+                    {"type": "phone", "label": "Phone Number", "placeholder": "+91 98765 43210", "required": True},
+                    {"type": "select", "label": "Position Applied For", "options": ["Frontend Developer", "Backend Developer", "Full Stack Developer", "UI/UX Designer", "Product Manager", "Data Analyst", "Other"], "required": True},
+                    {"type": "select", "label": "Years of Experience", "options": ["Fresher (0 years)", "1-2 years", "3-5 years", "5-10 years", "10+ years"], "required": True},
+                    {"type": "text", "label": "Current Company (if any)", "placeholder": "Leave blank if not applicable", "required": False},
+                    {"type": "file", "label": "Upload Resume (PDF)", "required": True},
+                    {"type": "textarea", "label": "Why do you want to join us?", "placeholder": "In 2-3 sentences...", "required": False},
+                    {"type": "submit", "label": "Submit Application", "color": "#4f46e5"},
+                ],
+            },
+            {
+                "id": "appointment",
+                "title": "Appointment Booking Form",
+                "category": "booking",
+                "description": "Let clients book appointments, consultations or slots.",
+                "color": "#0891b2",
+                "badge": "🔥 Popular",
+                "tags": ["booking", "appointment", "schedule", "clinic"],
+                "score": 77,
+                "score_tip": "Add time slot picker for 90+",
+                "suggestions": [
+                    {"icon": "🕐", "title": "Add Preferred Time Slot", "text": "Reduces back-and-forth scheduling.", "field": {"type": "select", "label": "Preferred Time", "options": ["9:00 AM", "10:00 AM", "11:00 AM", "2:00 PM", "3:00 PM", "4:00 PM"], "required": True}},
+                    {"icon": "💬", "title": "Add Notes field", "text": "Lets clients share special requests.", "field": {"type": "textarea", "label": "Additional Notes", "placeholder": "Anything we should know?", "required": False}},
+                ],
+                "fields": [
+                    {"type": "row2", "fields": [
+                        {"type": "text", "label": "Full Name", "placeholder": "Your name", "required": True},
+                        {"type": "phone", "label": "Phone Number", "placeholder": "+91 98765 43210", "required": True},
+                    ]},
+                    {"type": "email", "label": "Email Address", "placeholder": "you@email.com", "required": False},
+                    {"type": "select", "label": "Service Type", "options": ["General Consultation", "Follow-up Visit", "Specialist Appointment", "Lab / Test", "Other"], "required": True},
+                    {"type": "date", "label": "Preferred Date", "required": True},
+                    {"type": "radio", "label": "Mode of Appointment", "options": ["In-Person", "Video Call", "Phone Call"], "required": True},
+                    {"type": "submit", "label": "Book Appointment", "color": "#0891b2"},
+                ],
+            },
+            {
+                "id": "survey",
+                "title": "Customer Survey Form",
+                "category": "survey",
+                "description": "Run quick polls and surveys to gather audience opinions.",
+                "color": "#db2777",
+                "badge": None,
+                "tags": ["survey", "poll", "research", "opinion"],
+                "score": 70,
+                "score_tip": "Add rating question to reach 88+",
+                "suggestions": [
+                    {"icon": "⭐", "title": "Add Star Rating", "text": "Quick rating increases response rate.", "field": {"type": "rating", "label": "Overall Satisfaction", "required": True}},
+                    {"icon": "📊", "title": "Add NPS Question", "text": "Industry-standard satisfaction metric.", "field": {"type": "range", "label": "How likely are you to recommend us? (0–10)", "required": False}},
+                ],
+                "fields": [
+                    {"type": "text", "label": "Your Name", "placeholder": "Optional", "required": False},
+                    {"type": "radio", "label": "How did you hear about us?", "options": ["Social Media", "Friend / Referral", "Google Search", "Advertisement", "Other"], "required": True},
+                    {"type": "checkbox", "label": "Which features do you use?", "options": ["Forms", "Analytics", "Integrations", "Templates", "API"], "required": False},
+                    {"type": "select", "label": "How often do you use our product?", "options": ["Daily", "Weekly", "Monthly", "Rarely", "First time"], "required": True},
+                    {"type": "textarea", "label": "What can we improve?", "placeholder": "Your honest feedback...", "required": False},
+                    {"type": "submit", "label": "Submit Survey", "color": "#db2777"},
+                ],
+            },
+            {
+                "id": "support",
+                "title": "Bug Report / Support Form",
+                "category": "support",
+                "description": "Let users report bugs, issues or request help from support.",
+                "color": "#dc2626",
+                "badge": None,
+                "tags": ["bug", "support", "help", "issue", "tech"],
+                "score": 74,
+                "score_tip": "Add screenshot upload to reach 91+",
+                "suggestions": [
+                    {"icon": "📸", "title": "Add Screenshot Upload", "text": "Speeds up bug resolution by 3×.", "field": {"type": "file", "label": "Attach Screenshot", "required": False}},
+                    {"icon": "🔁", "title": "Add Steps to Reproduce", "text": "Critical for developers to debug.", "field": {"type": "textarea", "label": "Steps to Reproduce", "placeholder": "1. Go to...\n2. Click on...\n3. See error", "required": False}},
+                ],
+                "fields": [
+                    {"type": "row2", "fields": [
+                        {"type": "text", "label": "Full Name", "placeholder": "Your name", "required": True},
+                        {"type": "email", "label": "Email Address", "placeholder": "you@email.com", "required": True},
+                    ]},
+                    {"type": "select", "label": "Issue Type", "options": ["Bug / Error", "Feature Request", "Account Problem", "Payment Issue", "Performance", "Other"], "required": True},
+                    {"type": "select", "label": "Severity", "options": ["Critical (app unusable)", "High (major feature broken)", "Medium (workaround exists)", "Low (minor inconvenience)"], "required": True},
+                    {"type": "textarea", "label": "Describe the Issue", "placeholder": "What happened? What did you expect?", "required": True},
+                    {"type": "text", "label": "Browser / Device", "placeholder": "e.g. Chrome 120 on Windows 11", "required": False},
+                    {"type": "submit", "label": "Submit Report", "color": "#dc2626"},
+                ],
+            },
+            {
+                "id": "newsletter",
+                "title": "Newsletter Signup Form",
+                "category": "marketing",
+                "description": "Grow your email list with a simple, conversion-optimised signup form.",
+                "color": "#f59e0b",
+                "badge": None,
+                "tags": ["newsletter", "email", "marketing", "signup"],
+                "score": 65,
+                "score_tip": "Add interest tags to reach 85+",
+                "suggestions": [
+                    {"icon": "🏷️", "title": "Add Interest Tags", "text": "Enables personalised email campaigns.", "field": {"type": "checkbox", "label": "Interests (select all that apply)", "options": ["Product Updates", "Blog Posts", "Offers & Discounts", "Events", "Case Studies"], "required": False}},
+                    {"icon": "📱", "title": "Add Phone for SMS", "text": "Multi-channel outreach boosts CTR.", "field": {"type": "phone", "label": "Mobile Number (for SMS updates)", "placeholder": "+91 98765 43210", "required": False}},
+                ],
+                "fields": [
+                    {"type": "row2", "fields": [
+                        {"type": "text", "label": "First Name", "placeholder": "Your name", "required": True},
+                        {"type": "text", "label": "Last Name", "placeholder": "Last name", "required": False},
+                    ]},
+                    {"type": "email", "label": "Email Address", "placeholder": "you@email.com", "required": True},
+                    {"type": "select", "label": "How often would you like to hear from us?", "options": ["Daily", "Weekly digest", "Monthly newsletter", "Only special offers"], "required": False},
+                    {"type": "submit", "label": "Subscribe Now", "color": "#f59e0b"},
+                ],
+            },
         ]
+        added = 0
         for t in templates:
-            db.add(Template(**t))
+            existing = db.query(Template).filter(Template.id == t["id"]).first()
+            if existing:
+                for k, v in t.items():
+                    setattr(existing, k, v)
+            else:
+                db.add(Template(**t))
+                added += 1
         db.commit()
-        print(f"✅ Auto-seeded {len(templates)} templates")
+        print(f"✅ Seeded templates: {added} new, {len(templates) - added} updated")
     finally:
         db.close()
 

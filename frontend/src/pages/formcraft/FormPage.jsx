@@ -118,11 +118,29 @@ export default function FormPage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    setNotFound(false)
+    setForm(null)
+
     fetch(`/api/public/${formId}`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json() })
-      .then(data => { setForm(data); setLoading(false); document.title = `${data.title} — FormCraft` })
-      .catch(() => { setNotFound(true); setLoading(false) })
-    return () => { document.title = 'FormCraft' }
+      .then(r => { if (!r.ok) throw new Error(String(r.status)); return r.json() })
+      .then(data => {
+        if (cancelled) return
+        setForm(data)
+        setLoading(false)
+        document.title = `${data.title} — FormCraft`
+      })
+      .catch(() => {
+        if (cancelled) return
+        setNotFound(true)
+        setLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      document.title = 'FormCraft'
+    }
   }, [formId])
 
   const handleSubmit = async e => {

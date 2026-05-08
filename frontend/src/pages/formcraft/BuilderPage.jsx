@@ -39,6 +39,8 @@ function FieldPreview({ f }) {
     return <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: '#64748b' }}>{(f.options || [])[0] || 'Select...'} ▾</div>
   if (f.type === 'file')
     return <div style={{ background: '#f8fafc', border: '1.5px dashed #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: '#64748b', textAlign: 'center' }}>📎 Choose file</div>
+  if (f.type === 'date')
+    return <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: '#94a3b8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>📅 <span>dd / mm / yyyy</span></div>
   return <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: '#64748b' }}>{f.placeholder || 'Input field'}</div>
 }
 
@@ -111,7 +113,7 @@ export default function BuilderPage() {
 
   const selected = fields.find(f => f.id === selectedId)
   const hasOpts = selected && ['radio', 'checkbox', 'select'].includes(selected.type)
-  const hasPlaceholder = selected && !['radio', 'checkbox', 'select', 'rating', 'divider', 'file'].includes(selected.type)
+  const hasPlaceholder = selected && !['radio', 'checkbox', 'select', 'rating', 'divider', 'file', 'date'].includes(selected.type)
 
   const aiTips = []
   if (!fields.some(f => f.type === 'email')) aiTips.push({ t: 'Add Email field', fn: () => addField('email') })

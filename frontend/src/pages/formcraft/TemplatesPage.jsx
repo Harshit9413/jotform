@@ -109,7 +109,7 @@ function renderField(f, idx, starState, setStarState) {
     </div>
   )
   if (f.type === 'divider') return <hr key={idx} style={{ border: 'none', borderTop: '1.5px dashed #e2e8f0', margin: '8px 0 14px' }} />
-  const itype = f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : f.type === 'number' ? 'number' : 'text'
+  const itype = f.type === 'email' ? 'email' : f.type === 'phone' ? 'tel' : f.type === 'number' ? 'number' : f.type === 'date' ? 'date' : 'text'
   return (
     <div key={idx} className="fc-fg">
       <label>{f.label}{f.required && <span className="fc-req"> *</span>}</label>
@@ -133,17 +133,29 @@ const adaptCustomForm = cf => ({
 })
 
 function ShareModal({ formId, title, onClose }) {
-  const link = `${window.location.origin}/form/${formId}`
+  const base = import.meta.env.VITE_APP_URL || window.location.origin
+  const link = `${base}/form/${formId}`
   const [copied, setCopied] = useState(false)
-  const copy = () => {
-    navigator.clipboard.writeText(link)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+  const copy = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link)
+      } else {
+        const el = document.createElement('textarea')
+        el.value = link; el.style.position = 'fixed'; el.style.opacity = '0'
+        document.body.appendChild(el); el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopied(true); setTimeout(() => setCopied(false), 2500)
+    } catch (e) {
+      console.error('Copy failed:', e)
+    }
   }
   return (
-    <div onClick={e => e.target === e.currentTarget && onClose()}
+    <div onClick={e => { if (e.target === e.currentTarget) { e.stopPropagation(); onClose() } }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, padding: '28px 28px 24px', boxShadow: '0 16px 48px rgba(15,23,42,.18)' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 460, padding: '28px 28px 24px', boxShadow: '0 16px 48px rgba(15,23,42,.18)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>🔗 Share Form</h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: '#64748b', lineHeight: 1 }}>✕</button>
@@ -153,9 +165,11 @@ function ShareModal({ formId, title, onClose }) {
           Share this link with anyone — they can open it in any browser, fill your <strong style={{ color: '#0f172a' }}>{title}</strong> form and submit it. No login required.
         </p>
 
-        <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <a href={link} target="_blank" rel="noopener noreferrer"
+          style={{ display: 'flex', alignItems: 'center', background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', marginBottom: 14, gap: 10, textDecoration: 'none', cursor: 'pointer' }}>
           <span style={{ flex: 1, fontSize: 13, color: '#1a56db', wordBreak: 'break-all', fontFamily: 'monospace' }}>{link}</span>
-        </div>
+          <span style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap', flexShrink: 0 }}>↗ Open</span>
+        </a>
 
         <button onClick={copy}
           style={{ width: '100%', padding: '11px', border: 'none', borderRadius: 10, background: copied ? '#059669' : '#1a56db', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'background .2s' }}>
@@ -292,7 +306,19 @@ export default function TemplatesPage() {
       </div>
 
       <div className="fc-filter-row">
-        {[['all','All'],['payment','💳 Payment'],['contact','📬 Contact'],['registration','📝 Registration'],['feedback','⭐ Feedback'],['business','💼 Business'],['custom','🔨 My Forms']].map(([f, label]) => (
+        {[
+          ['all','All'],
+          ['contact','📬 Contact'],
+          ['registration','📝 Registration'],
+          ['feedback','⭐ Feedback'],
+          ['payment','💳 Payment'],
+          ['hr','👔 HR / Jobs'],
+          ['booking','📅 Booking'],
+          ['survey','📊 Survey'],
+          ['support','🐛 Support'],
+          ['marketing','📣 Marketing'],
+          ['custom','🔨 My Forms'],
+        ].map(([f, label]) => (
           <button key={f} className={`fc-filter-pill${activeFilter === f ? ' active' : ''}`} onClick={() => setActiveFilter(f)}>{label}</button>
         ))}
       </div>
