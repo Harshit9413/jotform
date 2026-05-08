@@ -1,0 +1,11 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlalchemy==2.0.35
+groq==0.13.1
+psycopg2-binary==2.9.12
+pymysql==1.1.1
+pydantic==2.9.2
+cryptography==42.0.7
+python-dotenv==1.0.1
+python-multipart==0.0.9
+aiofiles==23.2.1

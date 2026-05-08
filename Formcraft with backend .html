@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FormCraft Pro — Real Backend</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --blue:#1a56db;--blue-d:#1240a8;--blue-l:#e8f0fe;
+  --dark:#0f172a;--muted:#64748b;--border:#e2e8f0;
+  --bg:#f8fafc;--white:#ffffff;
+  --green:#059669;--green-l:#d1fae5;
+  --red:#dc2626;--red-l:#fee2e2;
+  --amber:#d97706;
+  --radius:14px;--shadow:0 8px 32px rgba(15,23,42,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--dark);}
+
+/* NAV */
+nav{background:var(--white);border-bottom:1px solid var(--border);padding:0 40px;display:flex;align-items:center;justify-content:space-between;height:62px;position:sticky;top:0;z-index:200;}
+.logo{font-family:'Playfair Display',serif;font-size:22px;color:var(--blue);}
+.logo span{color:var(--dark);}
+.nav-tabs{display:flex;gap:4px;}
+.nav-tab{padding:7px 16px;border-radius:8px;border:none;background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.nav-tab.active{background:var(--blue-l);color:var(--blue);}
+.nav-tab:hover:not(.active){background:var(--bg);}
+.nav-right{display:flex;gap:8px;}
+.btn-ghost{padding:8px 16px;border-radius:8px;border:1.5px solid var(--border);background:none;cursor:pointer;font-size:13px;font-weight:500;color:var(--dark);font-family:'DM Sans',sans-serif;}
+.btn-primary{padding:8px 18px;border-radius:8px;border:none;background:var(--blue);color:#fff;cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;}
+
+/* API STATUS */
+.api-status{padding:10px 40px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;}
+.api-status.ok{background:var(--green-l);color:#065f46;}
+.api-status.err{background:var(--red-l);color:#991b1b;}
+.api-dot{width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+/* PAGES */
+.page{display:none;}
+.page.active{display:block;}
+
+/* LOADING */
+.loading{text-align:center;padding:60px;color:var(--muted);}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* HERO */
+.hero{text-align:center;padding:64px 20px 40px;background:var(--white);border-bottom:1px solid var(--border);}
+.hero-tag{display:inline-flex;align-items:center;gap:6px;background:var(--blue-l);color:var(--blue);font-size:11px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:20px;letter-spacing:.05em;text-transform:uppercase;}
+.hero h1{font-family:'Playfair Display',serif;font-size:44px;line-height:1.2;color:var(--dark);margin-bottom:14px;}
+.hero h1 em{color:var(--blue);font-style:normal;}
+.hero p{font-size:16px;color:var(--muted);max-width:500px;margin:0 auto 28px;line-height:1.7;}
+.search-wrap{display:flex;gap:8px;max-width:440px;margin:0 auto;}
+.search-wrap input{flex:1;padding:11px 15px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;}
+.search-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+.search-wrap button{background:var(--blue);color:#fff;border:none;border-radius:10px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+
+.filter-row{display:flex;gap:8px;justify-content:center;padding:20px 20px 28px;flex-wrap:wrap;background:var(--white);}
+.filter-pill{padding:7px 18px;border-radius:20px;border:1.5px solid var(--border);background:none;font-size:13px;font-weight:500;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.filter-pill.active,.filter-pill:hover{border-color:var(--blue);background:var(--blue);color:#fff;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:20px;padding:28px 40px 60px;max-width:1240px;margin:0 auto;}
+.tcard{background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden;cursor:pointer;transition:transform .2s,border-color .2s,box-shadow .2s;}
+.tcard:hover{transform:translateY(-4px);border-color:var(--blue);box-shadow:var(--shadow);}
+.tcard-preview{height:176px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:7px;padding:18px;position:relative;}
+.mf{width:100%;max-width:210px;height:9px;border-radius:4px;background:rgba(255,255,255,.35);}
+.mf.lbl{height:6px;width:55%;background:rgba(255,255,255,.25);}
+.mf.btn{height:11px;width:75px;border-radius:5px;background:rgba(255,255,255,.9);margin-top:5px;}
+.mf.title{height:9px;width:38%;background:rgba(255,255,255,.5);margin-bottom:3px;}
+.badge-pill{position:absolute;top:12px;right:12px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,255,255,.9);}
+.tcard-body{padding:14px 16px 16px;border-top:1px solid var(--border);}
+.tcard-cat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;color:var(--blue);}
+.tcard-title{font-size:15px;font-weight:600;margin-bottom:5px;}
+.tcard-desc{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px;}
+.tcard-foot{display:flex;align-items:center;justify-content:space-between;}
+.tags{display:flex;gap:4px;flex-wrap:wrap;}
+.tag{font-size:10px;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 7px;color:var(--muted);}
+.use-btn{font-size:12px;font-weight:600;color:var(--blue);background:var(--blue-l);border:none;border-radius:7px;padding:5px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
+
+/* MODAL */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:300;align-items:flex-start;justify-content:center;padding:20px 16px;overflow-y:auto;}
+.overlay.open{display:flex;}
+.modal{background:var(--white);border-radius:18px;width:100%;max-width:940px;overflow:hidden;margin:auto;animation:slideUp .22s ease;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.mhdr{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid var(--border);}
+.mhdr-l h2{font-size:17px;font-weight:700;}
+.mhdr-l p{font-size:12px;color:var(--muted);margin-top:2px;}
+.mclose{background:var(--bg);border:1px solid var(--border);border-radius:8px;width:32px;height:32px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.mbody{display:grid;grid-template-columns:1fr 310px;min-height:500px;}
+.mform{padding:26px 28px;overflow-y:auto;max-height:70vh;}
+.mai{background:var(--bg);border-left:1px solid var(--border);padding:20px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;max-height:70vh;}
+
+/* FORM */
+.fsec{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px;}
+.frow3{display:grid;grid-template-columns:1fr 90px 80px;gap:12px;}
+.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.fg label{font-size:12px;font-weight:600;color:var(--dark);}
+.req{color:var(--red);}
+.fg input,.fg select,.fg textarea{padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--dark);background:var(--white);outline:none;transition:border-color .15s;width:100%;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+.fg textarea{height:78px;resize:none;}
+.radio-g,.check-g{display:flex;flex-direction:column;gap:8px;}
+.radio-opt,.check-opt{display:flex;align-items:center;gap:9px;font-size:14px;color:var(--dark);cursor:pointer;}
+.star-row{display:flex;gap:8px;font-size:26px;cursor:pointer;}
+.star{color:#cbd5e1;transition:color .1s;}
+.star.on{color:#d97706;}
+.cbadges{display:flex;gap:6px;margin-bottom:12px;}
+.cbadge{font-size:11px;font-weight:600;background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:3px 9px;color:var(--muted);}
+.submit-btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:6px;}
+.submit-btn:hover{opacity:.88;}
+.submit-btn:disabled{opacity:.5;cursor:not-allowed;}
+.form-success{background:var(--green-l);border:1.5px solid #6ee7b7;border-radius:10px;padding:18px;text-align:center;color:#065f46;font-weight:600;display:none;}
+.form-success span{display:block;font-size:28px;margin-bottom:6px;}
+
+/* AI PANEL */
+.ai-hdr{font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.ai-score-box{background:var(--green-l);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;}
+.score-n{font-size:26px;font-weight:800;color:var(--green);}
+.score-info strong{font-size:13px;font-weight:700;color:#065f46;}
+.score-info p{font-size:11px;color:#047857;margin-top:2px;line-height:1.5;}
+.ai-section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.ai-sug{background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:12px 13px;}
+.ai-sug h4{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.ai-sug p{font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:8px;}
+.add-btn{width:100%;padding:7px;border:1.5px dashed var(--border);border-radius:8px;background:none;font-size:12px;font-weight:600;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.add-btn:hover{border-color:var(--blue);background:var(--blue-l);}
+.add-btn.done{border-color:var(--green);background:var(--green-l);color:#065f46;border-style:solid;}
+.ai-ask-wrap{display:flex;gap:6px;}
+.ai-ask-wrap input{flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+.ai-ask-wrap input:focus{border-color:var(--blue);}
+.ask-btn{background:var(--blue);color:#fff;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;}
+.ai-resp{background:var(--white);border:1.5px solid var(--green);border-radius:9px;padding:11px 12px;font-size:12px;color:var(--dark);line-height:1.7;display:none;}
+.ai-resp.show{display:block;}
+
+/* BUILDER */
+.builder-wrap{display:grid;grid-template-columns:220px 1fr 270px;height:calc(100vh - 62px);}
+.b-sidebar{background:var(--white);border-right:1px solid var(--border);overflow-y:auto;padding:16px;}
+.b-sidebar h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:10px;}
+.field-types{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:20px;}
+.ft-item{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 6px;cursor:pointer;text-align:center;transition:all .15s;font-size:11px;font-weight:500;color:var(--muted);}
+.ft-item:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-l);}
+.ft-icon{font-size:16px;margin-bottom:3px;}
+.b-canvas{background:var(--bg);overflow-y:auto;padding:20px;}
+.canvas-card{background:var(--white);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.canvas-card.selected{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,86,219,.08);}
+.canvas-card-hdr{background:var(--bg);padding:8px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);cursor:pointer;}
+.canvas-card-label{font-size:12px;font-weight:600;color:var(--dark);display:flex;align-items:center;gap:6px;}
+.ftbadge{font-size:10px;padding:2px 7px;border-radius:4px;background:var(--blue-l);color:var(--blue);font-weight:600;}
+.canvas-card-actions{display:flex;gap:4px;}
+.ca-btn{width:24px;height:24px;border-radius:5px;border:1px solid var(--border);background:var(--white);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.ca-btn:hover{background:var(--bg);}
+.ca-btn.del:hover{background:var(--red-l);border-color:var(--red);color:var(--red);}
+.canvas-card-body{padding:10px 12px;}
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:36px;text-align:center;color:var(--muted);font-size:13px;}
+.b-props{background:var(--white);border-left:1px solid var(--border);overflow-y:auto;padding:16px;}
+.b-props h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:12px;}
+.prop-g{margin-bottom:12px;}
+.prop-lbl{font-size:12px;font-weight:600;color:var(--dark);display:block;margin-bottom:5px;}
+.prop-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+.prop-input:focus{border-color:var(--blue);}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;}
+.toggle{width:34px;height:18px;border-radius:20px;background:var(--border);border:none;cursor:pointer;position:relative;transition:background .2s;}
+.toggle.on{background:var(--blue);}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;}
+.toggle.on::after{transform:translateX(16px);}
+.no-sel{text-align:center;padding:32px 16px;color:var(--muted);}
+.opt-row{display:flex;gap:6px;margin-bottom:6px;}
+.opt-row input{flex:1;padding:7px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;}
+.del-opt{background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);}
+.add-opt-btn{width:100%;padding:7px;border:1.5px dashed var(--border);border-radius:7px;background:none;font-size:12px;color:var(--blue);cursor:pointer;font-family:'DM Sans',sans-serif;margin-top:4px;}
+
+/* SUBMISSIONS */
+.sub-page{padding:28px 40px;}
+.sub-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sub-hdr h2{font-size:20px;font-weight:700;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;}
+.stat-lbl{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px;}
+.stat-val{font-size:28px;font-weight:800;color:var(--dark);}
+.stat-sub{font-size:11px;color:var(--green);margin-top:4px;font-weight:500;}
+.sub-table{background:var(--white);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;}
+.sub-table-hdr{display:grid;grid-template-columns:2fr 1.4fr 1fr 90px 80px;padding:10px 16px;background:var(--bg);border-bottom:1px solid var(--border);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+.sub-row{display:grid;grid-template-columns:2fr 1.4fr 1fr 90px 80px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;align-items:center;transition:background .12s;}
+.sub-row:last-child{border-bottom:none;}
+.sub-row:hover{background:var(--bg);}
+.status-new{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--blue-l);color:var(--blue);font-weight:600;}
+.status-read{font-size:11px;padding:3px 9px;border-radius:20px;background:var(--bg);color:var(--muted);font-weight:600;border:1px solid var(--border);}
+.view-btn2{font-size:11px;padding:4px 10px;border-radius:6px;border:1.5px solid var(--border);background:none;cursor:pointer;color:var(--muted);font-family:'DM Sans',sans-serif;}
+.view-btn2:hover{border-color:var(--blue);color:var(--blue);}
+.empty-state{text-align:center;padding:48px;color:var(--muted);}
+
+/* DETAIL MODAL */
+.detail-modal{background:var(--white);border-radius:16px;width:100%;max-width:560px;margin:auto;overflow:hidden;animation:slideUp .2s ease;}
+.detail-body{padding:22px 24px;overflow-y:auto;max-height:70vh;}
+.detail-field{border-bottom:1px solid var(--border);padding:10px 0;}
+.detail-field:last-child{border-bottom:none;}
+.detail-key{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:capitalize;}
+.detail-val{font-size:14px;color:var(--dark);}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:20px;}
+
+@media(max-width:768px){
+  .grid{padding:16px;grid-template-columns:1fr;}
+  .hero h1{font-size:30px;}
+  .mbody{grid-template-columns:1fr;}
+  .mai{display:none;}
+  nav{padding:0 16px;}
+  .nav-tabs{display:none;}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .sub-page{padding:16px;}
+  .builder-wrap{grid-template-columns:1fr;}
+  .b-sidebar,.b-props{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- API ko yahan point karo -->
+<script>
+  const API = "http://localhost:8000";   // production mein apna URL daalo
+</script>
+
+<nav>
+  <div class="logo">Form<span>Craft</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('templates',this)">📋 Templates</button>
+    <button class="nav-tab" onclick="showPage('builder',this)">🛠 Builder</button>
+    <button class="nav-tab" onclick="showPage('submissions',this)">📊 Submissions</button>
+  </div>
+  <div class="nav-right">
+    <span id="apiStatusDot" style="font-size:12px;padding:5px 10px;border-radius:6px;background:var(--bg);color:var(--muted);">⚡ Checking API...</span>
+    <button class="btn-primary">Get started free</button>
+  </div>
+</nav>
+
+<!-- TEMPLATES -->
+<div id="page-templates" class="page active">
+  <div class="hero">
+    <div class="hero-tag">✦ Real PostgreSQL Backend</div>
+    <h1>Forms that <em>convert</em><br>& impress</h1>
+    <p>Click any template to preview it instantly. All submissions saved to PostgreSQL database.</p>
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Search templates..." oninput="applyFilters()">
+      <button onclick="applyFilters()">Search</button>
+    </div>
+  </div>
+  <div class="filter-row">
+    <button class="filter-pill active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-pill" onclick="setFilter('payment',this)">💳 Payment</button>
+    <button class="filter-pill" onclick="setFilter('contact',this)">📬 Contact</button>
+    <button class="filter-pill" onclick="setFilter('registration',this)">📝 Registration</button>
+    <button class="filter-pill" onclick="setFilter('feedback',this)">⭐ Feedback</button>
+    <button class="filter-pill" onclick="setFilter('business',this)">💼 Business</button>
+  </div>
+  <div class="grid" id="grid">
+    <div class="loading"><div class="spinner"></div>Loading templates from API...</div>
+  </div>
+</div>
+
+<!-- BUILDER -->
+<div id="page-builder" class="page">
+  <div style="background:var(--white);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:var(--muted);">Form name:</span>
+      <input id="builderTitle" type="text" value="Untitled Form" style="border:none;outline:none;font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;color:var(--dark);">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn-ghost" onclick="previewBuilder()">👁 Preview</button>
+      <button class="btn-primary" onclick="saveBuilderToDB()">💾 Save to DB</button>
+    </div>
+  </div>
+  <div class="builder-wrap">
+    <div class="b-sidebar">
+      <h3>Add Fields</h3>
+      <div class="field-types">
+        <div class="ft-item" onclick="addBF('text')"><div class="ft-icon">📝</div>Text</div>
+        <div class="ft-item" onclick="addBF('email')"><div class="ft-icon">📧</div>Email</div>
+        <div class="ft-item" onclick="addBF('phone')"><div class="ft-icon">📱</div>Phone</div>
+        <div class="ft-item" onclick="addBF('textarea')"><div class="ft-icon">📄</div>Long Text</div>
+        <div class="ft-item" onclick="addBF('select')"><div class="ft-icon">📋</div>Dropdown</div>
+        <div class="ft-item" onclick="addBF('radio')"><div class="ft-icon">🔘</div>Radio</div>
+        <div class="ft-item" onclick="addBF('checkbox')"><div class="ft-icon">☑️</div>Checkbox</div>
+        <div class="ft-item" onclick="addBF('number')"><div class="ft-icon">🔢</div>Number</div>
+        <div class="ft-item" onclick="addBF('date')"><div class="ft-icon">📅</div>Date</div>
+        <div class="ft-item" onclick="addBF('file')"><div class="ft-icon">📎</div>File</div>
+        <div class="ft-item" onclick="addBF('rating')"><div class="ft-icon">⭐</div>Rating</div>
+        <div class="ft-item" onclick="addBF('divider')"><div class="ft-icon">➖</div>Divider</div>
+      </div>
+      <h3>AI Tips</h3>
+      <div id="bAITips" style="display:flex;flex-direction:column;gap:8px;"></div>
+    </div>
+    <div class="b-canvas" id="bCanvas">
+      <div id="dropZone" class="drop-zone">👈 Click a field type to add it here</div>
+      <div id="bFields"></div>
+    </div>
+    <div class="b-props">
+      <h3>Field Settings</h3>
+      <div id="bProps"><div class="no-sel"><p style="font-size:28px;margin-bottom:10px;">⚙️</p><p>Select a field to edit</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SUBMISSIONS -->
+<div id="page-submissions" class="page">
+  <div class="sub-page">
+    <div class="sub-hdr">
+      <h2>📊 Submissions</h2>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-ghost" onclick="exportCSV()">⬇️ Export CSV</button>
+        <button class="btn-ghost" style="border-color:var(--red);color:var(--red);" onclick="clearAllSubs()">🗑 Clear All</button>
+      </div>
+    </div>
+    <div class="stats-grid" id="statsGrid">
+      <div class="loading" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+    <div class="sub-table">
+      <div class="sub-table-hdr"><div>Submission</div><div>Form</div><div>Date</div><div>Status</div><div>Action</div></div>
+      <div id="subBody"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FORM MODAL -->
+<div class="overlay" id="modalOverlay" onclick="bgClose(event,'modalOverlay',closeModal)">
+  <div class="modal">
+    <div class="mhdr">
+      <div class="mhdr-l"><h2 id="mTitle">Template</h2><p id="mDesc">Fill in the details</p></div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="mform" id="mForm"></div>
+      <div class="mai" id="mAI"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay" onclick="bgClose(event,'detailOverlay',closeDetail)">
+  <div class="detail-modal">
+    <div class="mhdr"><div class="mhdr-l"><h2>Submission Detail</h2></div><button class="mclose" onclick="closeDetail()">✕</button></div>
+    <div class="detail-body" id="detailBody"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let allTemplates = [];
+let activeFilter = 'all';
+let currentTemplate = null;
+let builderFields = [];
+let selectedBFId = null;
+let fieldCounter = 0;
+let allSubmissions = [];
+
+const AI_RESPONSES = [
+  "Great idea! Adding a WhatsApp opt-in will boost follow-up reach significantly in India.",
+  "You can add a 'Preferred contact time' dropdown with Morning / Afternoon / Evening options.",
+  "Consider adding a CAPTCHA or honeypot field to prevent spam submissions.",
+  "A progress bar at the top increases form completion rate by up to 28%.",
+  "Making phone field show +91 prefix by default reduces input errors for Indian users.",
+  "Adding 'How did you hear about us?' dropdown helps track your marketing channels.",
+];
+
+// ============================================================
+// API HELPERS
+// ============================================================
+async function apiGet(path) {
+  const res = await fetch(API + path);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiPatch(path) {
+  const res = await fetch(API + path, { method: 'PATCH' });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function apiDelete(path) {
+  const res = await fetch(API + path, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// ============================================================
+// API STATUS CHECK
+// ============================================================
+async function checkAPI() {
+  const dot = document.getElementById('apiStatusDot');
+  try {
+    await apiGet('/');
+    dot.textContent = '🟢 API Connected';
+    dot.style.background = 'var(--green-l)';
+    dot.style.color = '#065f46';
+  } catch {
+    dot.textContent = '🔴 API Offline';
+    dot.style.background = 'var(--red-l)';
+    dot.style.color = '#991b1b';
+  }
+}
+
+// ============================================================
+// PAGES
+// ============================================================
+function showPage(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (page === 'submissions') loadSubmissions();
+}
+
+// ============================================================
+// TEMPLATES
+// ============================================================
+async function loadTemplates() {
+  try {
+    allTemplates = await apiGet('/api/templates');
+    renderGrid(allTemplates);
+  } catch (err) {
+    document.getElementById('grid').innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);">
+        <div style="font-size:32px;margin-bottom:12px;">❌</div>
+        <p style="font-weight:600;">Cannot connect to API</p>
+        <p style="font-size:13px;color:var(--muted);margin-top:8px;">Make sure FastAPI is running at <strong>${API}</strong></p>
+        <p style="font-size:12px;color:var(--muted);margin-top:4px;">Run: <code>uvicorn main:app --reload</code></p>
+      </div>`;
+  }
+}
+
+function renderGrid(list) {
+  const g = document.getElementById('grid');
+  if (!list.length) {
+    g.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted);">No templates found</div>';
+    return;
+  }
+  g.innerHTML = list.map(t => `
+    <div class="tcard" onclick="openModal('${t.id}')">
+      <div class="tcard-preview" style="background:${t.color}18">
+        ${t.badge ? `<div class="badge-pill" style="color:${t.color}">${t.badge}</div>` : ''}
+        <div class="mf title"></div>
+        <div class="mf lbl"></div>
+        <div class="mf"></div>
+        <div class="mf lbl" style="width:50%"></div>
+        <div class="mf"></div>
+        <div class="mf btn" style="background:${t.color}cc"></div>
+      </div>
+      <div class="tcard-body">
+        <div class="tcard-cat">${t.category}</div>
+        <div class="tcard-title">${t.title}</div>
+        <div class="tcard-desc">${t.description || ''}</div>
+        <div class="tcard-foot">
+          <div class="tags">${(t.tags||[]).map(tg=>`<span class="tag">${tg}</span>`).join('')}</div>
+          <button class="use-btn" onclick="event.stopPropagation();openModal('${t.id}')">Use →</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  renderGrid(allTemplates.filter(t => {
+    const mc = activeFilter === 'all' || t.category === activeFilter;
+    const mq = !q || t.title.toLowerCase().includes(q) || (t.tags||[]).some(tg => tg.toLowerCase().includes(q));
+    return mc && mq;
+  }));
+}
+
+// ============================================================
+// FIELD RENDERER
+// ============================================================
+function renderField(f, idx) {
+  if (!f || !f.type) return '';
+  if (f.type === 'section') return `<div class="fsec">${f.label||''}</div>`;
+  if (f.type === 'cardicons') return `<div class="cbadges"><span class="cbadge">VISA</span><span class="cbadge">MC</span><span class="cbadge">UPI</span><span class="cbadge">PayPal</span></div>`;
+  if (f.type === 'cardnum') return `<div class="fg"><label>Card number <span class="req">*</span></label><input type="text" name="card_number" placeholder="1234  5678  9012  3456" maxlength="19" oninput="fmtCard(this)"></div>`;
+  if (f.type === 'row3card') return `<div class="frow3"><div class="fg"><label>Expiry <span class="req">*</span></label><input type="text" name="expiry" placeholder="MM / YY"></div><div class="fg"><label>CVV <span class="req">*</span></label><input type="text" name="cvv" placeholder="123" maxlength="4"></div><div class="fg"><label>ZIP</label><input type="text" name="zip" placeholder="302001"></div></div>`;
+  if (f.type === 'submit') return `
+    <div class="form-success" id="formSuccess"><span>✅</span>Submitted successfully! Saved to database.</div>
+    <button type="submit" class="submit-btn" id="submitBtn" style="background:${f.color||'var(--blue)'}">${f.label||'Submit'}</button>`;
+  if (f.type === 'row2') return `<div class="frow">${(f.fields||[]).map((ff,i)=>renderField(ff,idx+'_'+i)).join('')}</div>`;
+  if (f.type === 'rating') return `<div class="fg"><label>${f.label||'Rating'}${f.required?' <span class="req">*</span>':''}</label><div class="star-row" id="stars_${idx}">${[1,2,3,4,5].map(v=>`<span class="star" onclick="setStar(${idx},${v})">★</span>`).join('')}</div><input type="hidden" name="${f.label||'rating'}" id="starVal_${idx}"></div>`;
+  if (f.type === 'range') return `<div class="fg"><label>${f.label||'Range'}${f.required?' <span class="req">*</span>':''}</label><input type="range" name="${f.label||'range'}" min="0" max="10" value="7" style="accent-color:var(--amber);width:100%"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:2px;"><span>0</span><span>10</span></div></div>`;
+  if (f.type === 'radio') return `<div class="fg"><label>${f.label||''}${f.required?' <span class="req">*</span>':''}</label><div class="radio-g">${(f.options||[]).map(o=>`<label class="radio-opt"><input type="radio" name="${f.label||'radio_'+idx}" value="${o}">${o}</label>`).join('')}</div></div>`;
+  if (f.type === 'checkbox') return `<div class="fg"><label>${f.label||''}</label><div class="check-g">${(f.options||[]).map(o=>`<label class="check-opt"><input type="checkbox" name="${f.label||'check_'+idx}[]" value="${o}">${o}</label>`).join('')}</div></div>`;
+  if (f.type === 'select') return `<div class="fg"><label>${f.label||''}${f.required?' <span class="req">*</span>':''}</label><select name="${f.label||'select_'+idx}"${f.required?' required':''}><option value="">Select...</option>${(f.options||[]).map(o=>`<option value="${o}">${o}</option>`).join('')}</select></div>`;
+  if (f.type === 'textarea') return `<div class="fg"><label>${f.label||''}${f.required?' <span class="req">*</span>':''}</label><textarea name="${f.label||'textarea_'+idx}" placeholder="${f.placeholder||''}"${f.required?' required':''}></textarea></div>`;
+  if (f.type === 'file') return `<div class="fg"><label>${f.label||''}${f.required?' <span class="req">*</span>':''}</label><input type="file" name="${f.label||'file_'+idx}" style="padding:6px"${f.required?' required':''}></div>`;
+  if (f.type === 'divider') return `<hr style="border:none;border-top:1.5px dashed var(--border);margin:8px 0 16px;">`;
+  const itype = f.type==='email'?'email':f.type==='phone'?'tel':f.type==='number'?'number':'text';
+  return `<div class="fg"><label>${f.label||''}${f.required?' <span class="req">*</span>':''}</label><input type="${itype}" name="${f.label||f.type+'_'+idx}" placeholder="${f.placeholder||''}"${f.required?' required':''}></div>`;
+}
+
+function fmtCard(el) {
+  let v = el.value.replace(/\D/g,'').substring(0,16);
+  el.value = v.match(/.{1,4}/g)?.join('  ') || v;
+}
+
+function setStar(idx, val) {
+  document.querySelectorAll(`#stars_${idx} .star`).forEach((s,i) => s.classList.toggle('on', i < val));
+  const inp = document.getElementById('starVal_'+idx);
+  if (inp) inp.value = val;
+}
+
+// ============================================================
+// MODAL — OPEN TEMPLATE
+// ============================================================
+async function openModal(id) {
+  try {
+    const t = await apiGet(`/api/templates/${id}`);
+    currentTemplate = t;
+    document.getElementById('mTitle').textContent = t.title;
+    document.getElementById('mDesc').textContent = t.description || '';
+    renderModalForm(t);
+    renderAIPanel(t);
+    document.getElementById('modalOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  } catch (err) {
+    alert('Failed to load template: ' + err.message);
+  }
+}
+
+function renderModalForm(t) {
+  document.getElementById('mForm').innerHTML = `
+    <form id="templateForm" onsubmit="submitForm(event)">
+      ${(t.fields||[]).map((f,i) => renderField(f,i)).join('')}
+    </form>
+  `;
+}
+
+function renderAIPanel(t) {
+  document.getElementById('mAI').innerHTML = `
+    <div class="ai-hdr"><span class="ai-dot"></span>AI Suggestions</div>
+    <div class="ai-score-box">
+      <div class="score-n">${t.score||70}</div>
+      <div class="score-info"><strong>Form Score</strong><p>${t.score_tip||'Keep improving!'}</p></div>
+    </div>
+    <div class="ai-section-lbl">Recommended fields</div>
+    ${(t.suggestions||[]).map((s,i) => `
+      <div class="ai-sug" id="sug_${i}">
+        <h4>${s.icon||'💡'} ${s.title}</h4>
+        <p>${s.text}</p>
+        <button class="add-btn" id="addbtn_${i}" onclick="addSug(${i})">+ Add this field</button>
+      </div>
+    `).join('')}
+    <div class="ai-section-lbl">Ask AI anything</div>
+    <div class="ai-ask-wrap">
+      <input type="text" id="aiInput" placeholder="e.g. add a rating field...">
+      <button class="ask-btn" onclick="askAI()">Ask</button>
+    </div>
+    <div class="ai-resp" id="aiResp"></div>
+  `;
+}
+
+function addSug(i) {
+  const btn = document.getElementById('addbtn_'+i);
+  if (btn) { btn.textContent='✓ Added'; btn.className='add-btn done'; }
+}
+
+function askAI() {
+  const input = document.getElementById('aiInput');
+  const resp = document.getElementById('aiResp');
+  if (!input.value.trim()) return;
+  resp.textContent = '🤔 Thinking...';
+  resp.classList.add('show');
+  setTimeout(() => {
+    resp.textContent = '🤖 ' + AI_RESPONSES[Math.floor(Math.random() * AI_RESPONSES.length)];
+  }, 700);
+  input.value = '';
+}
+
+// ============================================================
+// FORM SUBMIT → POST TO FASTAPI → SAVE IN POSTGRESQL
+// ============================================================
+async function submitForm(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Saving to database...'; }
+
+  // Collect all form data
+  const formData = new FormData(e.target);
+  const data = {};
+  for (let [key, value] of formData.entries()) {
+    if (data[key]) {
+      data[key] = Array.isArray(data[key]) ? [...data[key], value] : [data[key], value];
+    } else {
+      data[key] = value;
+    }
+  }
+
+  // Remove empty fields
+  Object.keys(data).forEach(k => { if (!data[k]) delete data[k]; });
+
+  if (!Object.keys(data).length) {
+    alert('Please fill in at least one field!');
+    if (btn) { btn.disabled = false; btn.textContent = currentTemplate?.fields?.find(f=>f.type==='submit')?.label || 'Submit'; }
+    return;
+  }
+
+  try {
+    // POST to FastAPI → PostgreSQL
+    await apiPost('/api/submissions', {
+      form_id: currentTemplate.id,
+      form_title: currentTemplate.title,
+      data: data
+    });
+
+    // Show success
+    const s = document.getElementById('formSuccess');
+    if (s) s.style.display = 'block';
+    if (btn) btn.style.display = 'none';
+    setTimeout(() => { closeModal(); }, 2500);
+  } catch (err) {
+    alert('❌ Failed to save: ' + err.message + '\n\nMake sure FastAPI is running!');
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit'; }
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// ============================================================
+// BUILDER
+// ============================================================
+const B_DEFAULTS = {
+  text:{label:'Short Text',placeholder:'Type here...',required:false},
+  email:{label:'Email Address',placeholder:'you@email.com',required:true},
+  phone:{label:'Phone Number',placeholder:'+91 98765 43210',required:false},
+  textarea:{label:'Long Text',placeholder:'Write here...',required:false},
+  select:{label:'Dropdown',options:['Option 1','Option 2','Option 3'],required:false},
+  radio:{label:'Multiple Choice',options:['Option 1','Option 2','Option 3'],required:false},
+  checkbox:{label:'Checkboxes',options:['Option A','Option B','Option C'],required:false},
+  number:{label:'Number',placeholder:'0',required:false},
+  date:{label:'Date',placeholder:'',required:false},
+  file:{label:'File Upload',required:false},
+  rating:{label:'Star Rating',required:false},
+  divider:{label:'Divider'}
+};
+
+function addBF(type) {
+  const id = 'bf_' + (++fieldCounter);
+  builderFields.push({ id, type, ...JSON.parse(JSON.stringify(B_DEFAULTS[type]||{label:'Field'})) });
+  renderBCanvas();
+  selectBF(id);
+  updateBAI();
+}
+
+function renderBCanvas() {
+  document.getElementById('dropZone').style.display = builderFields.length ? 'none' : 'block';
+  document.getElementById('bFields').innerHTML = builderFields.map(f => {
+    let preview = '';
+    if (f.type==='radio'||f.type==='checkbox') preview=`<div style="font-size:11px;color:var(--muted);">${(f.options||[]).map(o=>`${f.type==='radio'?'◯':'☐'} ${o}`).join('  ')}</div>`;
+    else if (f.type==='rating') preview=`<div style="font-size:16px;color:var(--amber);">★★★★★</div>`;
+    else if (f.type==='divider') preview=`<hr style="border:none;border-top:2px dashed var(--border);">`;
+    else if (f.type==='textarea') preview=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--muted);height:36px;">${f.placeholder||''}</div>`;
+    else if (f.type==='select') preview=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--muted);">${(f.options||[])[0]||'Select...'} ▾</div>`;
+    else if (f.type==='file') preview=`<div style="background:var(--bg);border:1.5px dashed var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--muted);text-align:center;">📎 Choose file</div>`;
+    else preview=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--muted);">${f.placeholder||'Input field'}</div>`;
+    return `
+      <div class="canvas-card${selectedBFId===f.id?' selected':''}" onclick="selectBF('${f.id}')">
+        <div class="canvas-card-hdr">
+          <div class="canvas-card-label"><span class="ftbadge">${f.type}</span>${f.label}${f.required?'<span style="color:var(--red)">*</span>':''}</div>
+          <div class="canvas-card-actions">
+            <button class="ca-btn" onclick="moveBF('${f.id}',-1,event)">↑</button>
+            <button class="ca-btn" onclick="moveBF('${f.id}',1,event)">↓</button>
+            <button class="ca-btn del" onclick="deleteBF('${f.id}',event)">🗑</button>
+          </div>
+        </div>
+        <div class="canvas-card-body">${preview}</div>
+      </div>`;
+  }).join('');
+}
+
+function selectBF(id) { selectedBFId=id; renderBCanvas(); renderBProps(); }
+
+function moveBF(id,dir,e) {
+  e.stopPropagation();
+  const i=builderFields.findIndex(f=>f.id===id), ni=i+dir;
+  if(ni<0||ni>=builderFields.length)return;
+  [builderFields[i],builderFields[ni]]=[builderFields[ni],builderFields[i]];
+  renderBCanvas();
+}
+
+function deleteBF(id,e) {
+  e.stopPropagation();
+  builderFields=builderFields.filter(f=>f.id!==id);
+  if(selectedBFId===id){selectedBFId=null;renderBProps();}
+  renderBCanvas();updateBAI();
+}
+
+function renderBProps() {
+  const p=document.getElementById('bProps');
+  const f=builderFields.find(f=>f.id===selectedBFId);
+  if(!f){p.innerHTML='<div class="no-sel"><p style="font-size:28px;margin-bottom:10px;">⚙️</p><p>Select a field</p></div>';return;}
+  const hasOpts=['radio','checkbox','select'].includes(f.type);
+  const hasP=!['radio','checkbox','select','rating','divider','file'].includes(f.type);
+  p.innerHTML=`
+    <div class="prop-g"><label class="prop-lbl">Label</label><input class="prop-input" value="${f.label}" oninput="updBP('${f.id}','label',this.value)"></div>
+    ${hasP?`<div class="prop-g"><label class="prop-lbl">Placeholder</label><input class="prop-input" value="${f.placeholder||''}" oninput="updBP('${f.id}','placeholder',this.value)"></div>`:''}
+    ${hasOpts?`<div class="prop-g"><label class="prop-lbl">Options</label><div id="optsList">${(f.options||[]).map((o,i)=>`<div class="opt-row"><input value="${o}" oninput="updOpt('${f.id}',${i},this.value)"><button class="del-opt" onclick="rmOpt('${f.id}',${i})">×</button></div>`).join('')}</div><button class="add-opt-btn" onclick="addOpt('${f.id}')">+ Add option</button></div>`:''}
+    ${f.type!=='divider'?`<div class="prop-g"><div class="toggle-row"><span style="font-size:12px;font-weight:600;">Required</span><button class="toggle${f.required?' on':''}" onclick="togReq('${f.id}')"></button></div></div>`:''}
+    <button onclick="deleteBF('${f.id}',event)" style="width:100%;padding:8px;border:1.5px solid var(--red);border-radius:8px;background:var(--red-l);color:var(--red);cursor:pointer;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;margin-top:4px;">Remove Field</button>
+  `;
+}
+
+function updBP(id,k,v){const f=builderFields.find(f=>f.id===id);if(f){f[k]=v;renderBCanvas();}}
+function togReq(id){const f=builderFields.find(f=>f.id===id);if(f){f.required=!f.required;renderBCanvas();renderBProps();}}
+function updOpt(id,i,v){const f=builderFields.find(f=>f.id===id);if(f){f.options[i]=v;renderBCanvas();}}
+function addOpt(id){const f=builderFields.find(f=>f.id===id);if(f){f.options.push('New option');renderBProps();renderBCanvas();}}
+function rmOpt(id,i){const f=builderFields.find(f=>f.id===id);if(f){f.options.splice(i,1);renderBProps();renderBCanvas();}}
+
+function updateBAI() {
+  const hasEmail=builderFields.some(f=>f.type==='email');
+  const hasPhone=builderFields.some(f=>f.type==='phone');
+  const tips=[];
+  if(!hasEmail)tips.push({t:'Add Email field',a:()=>addBF('email')});
+  if(!hasPhone)tips.push({t:'Add Phone field',a:()=>addBF('phone')});
+  const c=document.getElementById('bAITips');
+  c.innerHTML=tips.slice(0,2).map((tip,i)=>`
+    <div class="ai-sug"><p style="margin:0 0 6px;font-size:12px;font-weight:600;">💡 ${tip.t}</p><button class="add-btn" onclick="bAIAdd(${i})">+ Add</button></div>
+  `).join('')||'<p style="font-size:11px;color:var(--muted);">Form looks great! 🎉</p>';
+  window._bTips=tips;
+}
+
+function bAIAdd(i){const t=(window._bTips||[])[i];if(t)t.a();}
+
+function previewBuilder() {
+  if(!builderFields.length){alert('Add some fields first!');return;}
+  currentTemplate={id:'preview',title:document.getElementById('builderTitle').value||'My Form',description:'Preview mode',score:75,score_tip:'Custom form',suggestions:[],fields:builderFields.map(f=>({...f}))};
+  renderModalForm(currentTemplate);
+  document.getElementById('mTitle').textContent=currentTemplate.title;
+  document.getElementById('mDesc').textContent='Preview — submissions will be saved to database';
+  document.getElementById('mAI').innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Preview mode</div>';
+  document.getElementById('modalOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+// SAVE BUILDER FORM TO DB
+async function saveBuilderToDB() {
+  if(!builderFields.length){alert('Add some fields first!');return;}
+  try {
+    const result=await apiPost('/api/forms',{
+      title:document.getElementById('builderTitle').value||'Untitled Form',
+      fields:builderFields
+    });
+    alert(`✅ Form "${result.title}" saved to database! ID: ${result.id}`);
+  } catch(err){
+    alert('❌ Save failed: '+err.message);
+  }
+}
+
+// ============================================================
+// SUBMISSIONS — LOAD FROM POSTGRESQL
+// ============================================================
+async function loadSubmissions() {
+  document.getElementById('subBody').innerHTML='<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const [subs, stats] = await Promise.all([
+      apiGet('/api/submissions'),
+      apiGet('/api/stats')
+    ]);
+    allSubmissions = subs;
+    renderStats(stats);
+    renderSubs(subs);
+  } catch(err) {
+    document.getElementById('subBody').innerHTML=`<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">❌</div><p>Cannot load submissions</p><p style="font-size:12px;margin-top:6px;">${err.message}</p></div>`;
+  }
+}
+
+function renderStats(stats) {
+  document.getElementById('statsGrid').innerHTML=[
+    {l:'Total Submissions',v:stats.total,s:'All time'},
+    {l:'New (Unread)',v:stats.new,s:'Needs review'},
+    {l:'Today',v:stats.today,s:'Submitted today'},
+    {l:'Completion Rate',v:stats.completion_rate,s:'This week'}
+  ].map(s=>`<div class="stat-card"><div class="stat-lbl">${s.l}</div><div class="stat-val">${s.v}</div><div class="stat-sub">${s.s}</div></div>`).join('');
+}
+
+function renderSubs(subs) {
+  const body=document.getElementById('subBody');
+  if(!subs.length){body.innerHTML='<div class="empty-state"><div style="font-size:36px;margin-bottom:12px;">📭</div><p>No submissions yet. Fill out a template form to see data here.</p></div>';return;}
+  body.innerHTML=subs.map(s=>{
+    const name=Object.values(s.data||{})[0]||'Anonymous';
+    const date=new Date(s.submitted_at).toLocaleDateString('en-IN');
+    return `<div class="sub-row">
+      <div style="font-weight:500;">#${s.id} — ${name}</div>
+      <div style="color:var(--muted);font-size:12px;">${s.form_title}</div>
+      <div style="color:var(--muted);font-size:12px;">${date}</div>
+      <div><span class="status-${s.status}">${s.status==='new'?'🔵 New':'✅ Read'}</span></div>
+      <div><button class="view-btn2" onclick="viewSub(${s.id})">View</button></div>
+    </div>`;
+  }).join('');
+}
+
+async function viewSub(id) {
+  try {
+    const s=await apiGet(`/api/submissions/${id}`);
+    const date=new Date(s.submitted_at).toLocaleString('en-IN');
+    document.getElementById('detailBody').innerHTML=`
+      <div style="margin-bottom:16px;"><div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Form</div><div style="font-weight:600;">${s.form_title}</div></div>
+      <div style="margin-bottom:16px;"><div style="font-size:11px;color:var(--muted);margin-bottom:3px;">Submitted</div><div>${date}</div></div>
+      ${Object.entries(s.data||{}).map(([k,v])=>`<div class="detail-field"><div class="detail-key">${k}</div><div class="detail-val">${Array.isArray(v)?v.join(', '):v}</div></div>`).join('')}
+      <button class="btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="closeDetail()">Close</button>
+    `;
+    document.getElementById('detailOverlay').classList.add('open');
+    // mark as read
+    await apiPatch(`/api/submissions/${id}/read`);
+    loadSubmissions();
+  } catch(err){alert('Error: '+err.message);}
+}
+
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');}
+
+function exportCSV() {
+  if(!allSubmissions.length){alert('No submissions to export.');return;}
+  const rows=[['ID','Form','Date','Status','Data']];
+  allSubmissions.forEach(s=>rows.push([s.id,s.form_title,s.submitted_at,s.status,JSON.stringify(s.data)]));
+  const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='formcraft_submissions.csv';
+  a.click();
+}
+
+async function clearAllSubs() {
+  if(!confirm('Delete ALL submissions from database? This cannot be undone.'))return;
+  try{
+    await apiDelete('/api/submissions');
+    allSubmissions=[];
+    loadSubmissions();
+  }catch(err){alert('Error: '+err.message);}
+}
+
+function bgClose(e,id,fn){if(e.target===document.getElementById(id))fn();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeDetail();}});
+
+// ============================================================
+// INIT
+// ============================================================
+checkAPI();
+loadTemplates();
+updateBAI();
+</script>
+</body>
+</html>
