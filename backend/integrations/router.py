@@ -140,6 +140,30 @@ def list_integrations(
     return [_out(i) for i in itgs]
 
 
+@router.patch("/{integration_id}/config")
+def update_integration_config(
+    integration_id: int,
+    req: UpdateConfigReq,
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(default=None),
+):
+    _require_user(authorization)
+    itg = db.query(Integration).filter(Integration.id == integration_id).first()
+    if not itg:
+        raise HTTPException(status_code=404, detail="Integration not found")
+
+    merged = copy.deepcopy(itg.config or {})
+    for k, v in req.config.items():
+        if v not in (None, "", {}):
+            merged[k] = v
+    from sqlalchemy.orm.attributes import flag_modified
+    itg.config = merged
+    flag_modified(itg, "config")
+    db.commit()
+    db.refresh(itg)
+    return _out(itg)
+
+
 @router.patch("/{integration_id}/toggle")
 def toggle_integration(
     integration_id: int,
