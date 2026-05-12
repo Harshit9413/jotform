@@ -1,6 +1,154 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { authHeaders } from '../../utils/api'
 import './formcraft.css'
+
+const LANGUAGES = [
+  { code: 'Hindi', label: '🇮🇳 Hindi' },
+  { code: 'Spanish', label: '🇪🇸 Spanish' },
+  { code: 'French', label: '🇫🇷 French' },
+  { code: 'German', label: '🇩🇪 German' },
+  { code: 'Arabic', label: '🇸🇦 Arabic' },
+  { code: 'Portuguese', label: '🇧🇷 Portuguese' },
+  { code: 'Japanese', label: '🇯🇵 Japanese' },
+  { code: 'Chinese (Simplified)', label: '🇨🇳 Chinese' },
+  { code: 'Italian', label: '🇮🇹 Italian' },
+  { code: 'Bengali', label: '🇧🇩 Bengali' },
+  { code: 'Gujarati', label: 'ગુ Gujarati' },
+  { code: 'Tamil', label: '🇱🇰 Tamil' },
+  { code: 'Telugu', label: 'తె Telugu' },
+  { code: 'Marathi', label: 'म Marathi' },
+]
+
+function TranslateModal({ title, fields, onApply, onClose }) {
+  const [lang, setLang] = useState('Hindi')
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('groq_key') || '')
+  const [saveKey, setSaveKey] = useState(true)
+  const [translating, setTranslating] = useState(false)
+  const [error, setError] = useState('')
+  const [preview, setPreview] = useState(null)
+
+  const translate = async () => {
+    if (!apiKey.trim()) { setError('Groq API key is required'); return }
+    if (!fields.length) { setError('Add fields to the form first'); return }
+    setTranslating(true)
+    setError('')
+    setPreview(null)
+    try {
+      const res = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, fields, target_language: lang, groq_api_key: apiKey.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Translation failed')
+      if (saveKey) localStorage.setItem('groq_key', apiKey.trim())
+      setPreview(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setTranslating(false)
+    }
+  }
+
+  return createPortal(
+    <div onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: "'DM Sans','Segoe UI',sans-serif" }}>
+      <div onClick={e => e.stopPropagation()}
+        style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 520, boxShadow: '0 24px 64px rgba(15,23,42,.22)', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg,#1a56db,#6c63ff)', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ color: '#fff', fontSize: 18, fontWeight: 800, margin: 0 }}>🌐 Translate Form</h2>
+              <p style={{ color: 'rgba(255,255,255,.8)', fontSize: 13, margin: '4px 0 0' }}>
+                AI-powered translation using Groq — one click, all fields
+              </p>
+            </div>
+            <button onClick={onClose} style={{ background: 'rgba(255,255,255,.2)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+          </div>
+        </div>
+
+        <div style={{ padding: '24px' }}>
+          {/* Language picker */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={lbl2}>Target Language</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 6 }}>
+              {LANGUAGES.map(l => (
+                <button key={l.code} onClick={() => { setLang(l.code); setPreview(null) }}
+                  style={{ padding: '8px 6px', border: `2px solid ${lang === l.code ? '#1a56db' : '#e2e8f0'}`, borderRadius: 9, background: lang === l.code ? '#eff6ff' : '#fff', color: lang === l.code ? '#1a56db' : '#374151', fontSize: 12, fontWeight: lang === l.code ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'center' }}>
+                  {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* API key */}
+          <div style={{ marginBottom: 6 }}>
+            <label style={lbl2}>Groq API Key</label>
+            <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="gsk_..."
+              style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' }} />
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b', marginBottom: 16, cursor: 'pointer' }}>
+            <input type="checkbox" checked={saveKey} onChange={e => setSaveKey(e.target.checked)} />
+            Save key for next time
+          </label>
+
+          {error && (
+            <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#dc2626', fontSize: 13, marginBottom: 16 }}>{error}</div>
+          )}
+
+          {/* Preview */}
+          {preview && (
+            <div style={{ background: '#f8fafc', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: '14px 16px', marginBottom: 16, maxHeight: 180, overflowY: 'auto' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#1a56db', marginBottom: 8 }}>Preview: "{preview.title}"</div>
+              {preview.fields.slice(0, 5).map((f, i) => (
+                <div key={i} style={{ fontSize: 12, color: '#374151', padding: '3px 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <span style={{ fontWeight: 600 }}>{f.label}</span>
+                  {f.placeholder && <span style={{ color: '#94a3b8' }}> — {f.placeholder}</span>}
+                  {f.options?.length > 0 && <span style={{ color: '#94a3b8' }}> ({f.options.join(', ')})</span>}
+                </div>
+              ))}
+              {preview.fields.length > 5 && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>+{preview.fields.length - 5} more fields...</div>}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {preview ? (
+              <>
+                <button onClick={() => onApply(preview)}
+                  style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: '#059669', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  ✓ Apply Translation
+                </button>
+                <button onClick={() => { setPreview(null); translate() }} disabled={translating}
+                  style={{ padding: '11px 16px', border: '1.5px solid #e2e8f0', borderRadius: 10, background: '#fff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Retry
+                </button>
+              </>
+            ) : (
+              <button onClick={translate} disabled={translating}
+                style={{ flex: 1, padding: '11px', border: 'none', borderRadius: 10, background: translating ? '#93c5fd' : '#1a56db', color: '#fff', fontSize: 14, fontWeight: 700, cursor: translating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {translating ? (
+                  <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Translating...</>
+                ) : '🌐 Translate Now'}
+                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              </button>
+            )}
+            <button onClick={onClose}
+              style={{ padding: '11px 18px', border: '1.5px solid #e2e8f0', borderRadius: 10, background: '#fff', color: '#64748b', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+const lbl2 = { display: 'block', fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 8 }
 
 const B_DEFAULTS = {
   text:     { label: 'Short Text',      placeholder: 'Type here...',    required: false },
@@ -46,10 +194,13 @@ function FieldPreview({ f }) {
 
 export default function BuilderPage() {
   const navigate = useNavigate()
-  const [title, setTitle] = useState('Untitled Form')
-  const [fields, setFields] = useState([])
+  const location = useLocation()
+  const [title, setTitle] = useState(location.state?.title || 'Untitled Form')
+  const [fields, setFields] = useState(location.state?.fields || [])
   const [selectedId, setSelectedId] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [showTranslate, setShowTranslate] = useState(false)
+  const [originalSnapshot, setOriginalSnapshot] = useState(null)
 
   const addField = type => {
     const id = `bf_${++_counter}`
@@ -102,7 +253,7 @@ export default function BuilderPage() {
     try {
       const res = await fetch('/api/forms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify({ title, fields }),
       })
       await res.json()
@@ -121,13 +272,39 @@ export default function BuilderPage() {
 
   return (
     <div className="fc">
-      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #e2e8f0', padding: '9px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, color: '#64748b' }}>Form name:</span>
           <input value={title} onChange={e => setTitle(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: 14, fontWeight: 600, fontFamily: "'DM Sans', sans-serif", color: '#0f172a' }} />
         </div>
-        <button className="fc-btn-primary" onClick={saveToDb} disabled={saving}>{saving ? '⏳ Saving...' : '💾 Save to DB'}</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {originalSnapshot && (
+            <button onClick={() => { setTitle(originalSnapshot.title); setFields(originalSnapshot.fields); setOriginalSnapshot(null) }}
+              style={{ padding: '7px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, background: '#fff', color: '#64748b', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+              ↩ Restore Original
+            </button>
+          )}
+          <button onClick={() => setShowTranslate(true)} disabled={!fields.length}
+            style={{ padding: '7px 16px', border: '1.5px solid #1a56db', borderRadius: 8, background: '#eff6ff', color: '#1a56db', fontSize: 12, fontWeight: 700, cursor: fields.length ? 'pointer' : 'not-allowed', fontFamily: "'DM Sans',sans-serif", opacity: fields.length ? 1 : 0.5 }}>
+            🌐 Translate
+          </button>
+          <button className="fc-btn-primary" onClick={saveToDb} disabled={saving}>{saving ? '⏳ Saving...' : '💾 Save to DB'}</button>
+        </div>
       </div>
+
+      {showTranslate && (
+        <TranslateModal
+          title={title}
+          fields={fields}
+          onApply={data => {
+            if (!originalSnapshot) setOriginalSnapshot({ title, fields: JSON.parse(JSON.stringify(fields)) })
+            setTitle(data.title)
+            setFields(data.fields)
+            setShowTranslate(false)
+          }}
+          onClose={() => setShowTranslate(false)}
+        />
+      )}
 
       <div className="fc-builder-wrap">
         <div className="fc-b-sidebar">

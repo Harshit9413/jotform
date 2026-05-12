@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, DateTime, JSON, Text
-from sqlalchemy.orm import declarative_base
 from datetime import datetime
-
-Base = declarative_base()
+from formcraft.database import Base
 
 
 class Template(Base):
@@ -39,4 +37,5 @@ class CustomForm(Base):
     id         = Column(Integer, primary_key=True, index=True, autoincrement=True)
     title      = Column(String, nullable=False)
     fields     = Column(JSON, default=list)
+    user_id    = Column(Integer, nullable=True)  # nullable for backward compat
     created_at = Column(DateTime, default=datetime.utcnow)

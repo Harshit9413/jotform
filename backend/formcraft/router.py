@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Header, BackgroundTasks
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Any
 from datetime import datetime
+import json
 
 from .models import Template, Submission, CustomForm
 from .schemas import (
@@ -9,6 +10,7 @@ from .schemas import (
     CustomFormCreate, CustomFormOut,
 )
 from .database import SessionLocal
+from auth.utils import decode_token
 
 router = APIRouter(prefix="/api")
 
@@ -69,7 +71,7 @@ def get_template(template_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/submissions", response_model=SubmissionOut)
-def create_submission(payload: SubmissionCreate, db: Session = Depends(get_db)):
+def create_submission(payload: SubmissionCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     sub = Submission(
         form_id=payload.form_id,
         form_title=payload.form_title,
@@ -80,6 +82,40 @@ def create_submission(payload: SubmissionCreate, db: Session = Depends(get_db)):
     db.add(sub)
     db.commit()
     db.refresh(sub)
+
+    # Email notification for custom form submissions
+    if payload.form_id and payload.form_id.startswith("custom_"):
+        try:
+            form_id_int = int(payload.form_id.replace("custom_", ""))
+            form = db.query(CustomForm).filter(CustomForm.id == form_id_int).first()
+            if form and form.user_id:
+                from auth.models import User
+                from .email_notify import send_submission_notification
+                user = db.query(User).filter(User.id == form.user_id).first()
+                if user:
+                    background_tasks.add_task(
+                        send_submission_notification,
+                        user.email,
+                        payload.form_title,
+                        payload.data if isinstance(payload.data, dict) else {},
+                        sub.id,
+                    )
+        except Exception:
+            pass  # never fail submission because of notification logic
+
+    # Fire all active integrations (Google Sheets, Email) in background
+    try:
+        from integrations.engine import trigger_all_integrations
+        background_tasks.add_task(
+            trigger_all_integrations,
+            submission_id=sub.id,
+            form_id=payload.form_id,
+            form_title=payload.form_title,
+            data=payload.data if isinstance(payload.data, dict) else {},
+        )
+    except Exception:
+        pass
+
     return sub
 
 
@@ -132,6 +168,12 @@ def delete_all_submissions(db: Session = Depends(get_db)):
     return {"message": "All submissions deleted"}
 
 
+@router.get("/settings/notifications")
+def notification_settings():
+    import os
+    return {"email_enabled": bool(os.getenv("RESEND_API_KEY", ""))}
+
+
 @router.get("/stats")
 def get_stats(db: Session = Depends(get_db)):
     total = db.query(Submission).count()
@@ -149,10 +191,16 @@ def get_stats(db: Session = Depends(get_db)):
 
 
 @router.post("/forms", response_model=CustomFormOut)
-def save_custom_form(payload: CustomFormCreate, db: Session = Depends(get_db)):
+def save_custom_form(payload: CustomFormCreate, db: Session = Depends(get_db), authorization: Optional[str] = Header(default=None)):
+    user_id = None
+    if authorization and authorization.startswith("Bearer "):
+        token_data = decode_token(authorization.split(" ")[1])
+        if token_data:
+            user_id = int(token_data.get("sub", 0)) or None
     form = CustomForm(
         title=payload.title,
         fields=payload.fields,
+        user_id=user_id,
         created_at=datetime.utcnow(),
     )
     db.add(form)
@@ -162,8 +210,47 @@ def save_custom_form(payload: CustomFormCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/forms", response_model=List[CustomFormOut])
-def get_custom_forms(db: Session = Depends(get_db)):
-    return db.query(CustomForm).order_by(CustomForm.created_at.desc()).all()
+def get_custom_forms(db: Session = Depends(get_db), authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return []
+    token_data = decode_token(authorization.split(" ")[1])
+    if not token_data:
+        return []
+    user_id = int(token_data.get("sub", 0))
+    return db.query(CustomForm).filter(CustomForm.user_id == user_id).order_by(CustomForm.created_at.desc()).all()
+
+
+@router.get("/stats/user")
+def user_stats(db: Session = Depends(get_db), authorization: Optional[str] = Header(default=None)):
+    if not authorization or not authorization.startswith("Bearer "):
+        return {"total_forms": 0, "total_submissions": 0, "recent_forms": []}
+    token_data = decode_token(authorization.split(" ")[1])
+    if not token_data:
+        return {"total_forms": 0, "total_submissions": 0, "recent_forms": []}
+    user_id = int(token_data.get("sub", 0))
+
+    user_forms = db.query(CustomForm).filter(CustomForm.user_id == user_id).order_by(CustomForm.created_at.desc()).all()
+    form_ids = [f"custom_{f.id}" for f in user_forms]
+
+    sub_count = 0
+    if form_ids:
+        sub_count = db.query(Submission).filter(Submission.form_id.in_(form_ids)).count()
+
+    recent = [
+        {
+            "id": f.id,
+            "title": f.title,
+            "created_at": f.created_at.isoformat(),
+            "field_count": len(f.fields),
+        }
+        for f in user_forms[:5]
+    ]
+
+    return {
+        "total_forms": len(user_forms),
+        "total_submissions": sub_count,
+        "recent_forms": recent,
+    }
 
 
 @router.get("/forms/{form_id}", response_model=CustomFormOut)
@@ -172,3 +259,76 @@ def get_custom_form(form_id: int, db: Session = Depends(get_db)):
     if not form:
         raise HTTPException(status_code=404, detail="Form not found")
     return form
+
+
+from pydantic import BaseModel as _BaseModel
+
+
+class TranslateRequest(_BaseModel):
+    title: str
+    fields: List[Any]
+    target_language: str
+    groq_api_key: str
+
+
+@router.post("/translate")
+def translate_form(req: TranslateRequest):
+    from groq import Groq
+
+    extractable = {
+        "title": req.title,
+        "fields": [
+            {
+                "label": f.get("label", ""),
+                "placeholder": f.get("placeholder", ""),
+                "options": f.get("options", []),
+            }
+            for f in req.fields
+        ],
+    }
+
+    prompt = (
+        f"Translate the following JSON form data from English to {req.target_language}.\n"
+        "Rules:\n"
+        "- Translate ONLY text values (title, label, placeholder, option strings)\n"
+        "- Do NOT change keys, field types, IDs, or booleans\n"
+        "- Keep empty strings empty\n"
+        "- Return ONLY valid JSON, no explanation\n\n"
+        f"Input:\n{json.dumps(extractable, ensure_ascii=False, indent=2)}"
+    )
+
+    try:
+        client = Groq(api_key=req.groq_api_key)
+        resp = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=2048,
+            temperature=0.1,
+        )
+        raw = resp.choices[0].message.content.strip()
+        # strip markdown code fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        translated = json.loads(raw.strip())
+    except json.JSONDecodeError as exc:
+        raise HTTPException(status_code=500, detail=f"AI returned invalid JSON: {exc}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Translation error: {exc}")
+
+    translated_fields = []
+    for orig, tr in zip(req.fields, translated.get("fields", [])):
+        merged = dict(orig)
+        if tr.get("label"):
+            merged["label"] = tr["label"]
+        if tr.get("placeholder"):
+            merged["placeholder"] = tr["placeholder"]
+        if tr.get("options") and isinstance(tr["options"], list) and len(tr["options"]) == len(orig.get("options", [])):
+            merged["options"] = tr["options"]
+        translated_fields.append(merged)
+
+    return {
+        "title": translated.get("title", req.title),
+        "fields": translated_fields,
+    }

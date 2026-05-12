@@ -47,6 +47,7 @@ class CustomFormOut(BaseModel):
     id:         int
     title:      str
     fields:     List[Dict[str, Any]]
+    user_id:    Optional[int] = None
     created_at: datetime
 
     class Config:
