@@ -17,6 +17,8 @@ services:
         value: "18"
       - key: VITE_APP_URL
         value: "https://formcraft-app.onrender.com"
+      - key: ALLOWED_ORIGINS
+        value: "https://formcraft-app.onrender.com"
 
 databases:
   - name: formcraft-db
