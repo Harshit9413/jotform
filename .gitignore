@@ -8,3 +8,4 @@ logs/
 dist/
 .DS_Store
 *.db
+backend/service-account.json
