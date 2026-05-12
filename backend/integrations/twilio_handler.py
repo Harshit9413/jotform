@@ -2,8 +2,6 @@ from __future__ import annotations
 import re
 from typing import Any, Dict, List, Optional
 
-from twilio.rest import Client
-
 
 _PHONE_KEYWORDS = {"phone", "mobile", "contact", "number"}
 
@@ -40,6 +38,13 @@ def _user_sms(form_title: str) -> str:
 
 
 def run_twilio_sms(config: Dict[str, Any], form_data: Dict[str, Any], form_title: str) -> Dict[str, Any]:
+    try:
+        from twilio.rest import Client
+    except ImportError:
+        raise RuntimeError(
+            "twilio is not installed. Run: pip install twilio"
+        )
+
     account_sid  = config.get("account_sid", "").strip()
     auth_token   = config.get("auth_token", "").strip()
     from_number  = config.get("from_number", "").strip()

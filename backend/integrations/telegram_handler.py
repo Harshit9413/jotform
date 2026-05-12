@@ -2,8 +2,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict
 
-import requests
-
 
 def _format_message(form_title: str, form_data: Dict[str, Any]) -> str:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -21,6 +19,13 @@ def _format_message(form_title: str, form_data: Dict[str, Any]) -> str:
 
 
 def run_telegram(config: Dict[str, Any], form_data: Dict[str, Any], form_title: str) -> Dict[str, Any]:
+    try:
+        import requests
+    except ImportError:
+        raise RuntimeError(
+            "requests is not installed. Run: pip install requests"
+        )
+
     bot_token = config.get("bot_token", "").strip()
     chat_id   = str(config.get("chat_id", "")).strip()
 
