@@ -26,15 +26,36 @@ def run_google_sheets(config: Dict[str, Any], form_data: Dict[str, Any], form_ti
     if isinstance(sa_info, str):
         sa_info = json.loads(sa_info)
 
-    credentials = service_account.Credentials.from_service_account_info(
-        sa_info,
-        scopes=["https://www.googleapis.com/auth/spreadsheets"],
-    )
+    try:
+        credentials = service_account.Credentials.from_service_account_info(
+            sa_info,
+            scopes=["https://www.googleapis.com/auth/spreadsheets"],
+        )
+    except Exception as exc:
+        raise ValueError(
+            f"Invalid service account JSON: {exc}. "
+            "Paste the full contents of your downloaded service-account.json file."
+        ) from exc
+
     service = build("sheets", "v4", credentials=credentials, cache_discovery=False)
     sheets  = service.spreadsheets()
 
     # ── Ensure sheet tab exists, create if missing ────────────────────────
-    meta = sheets.get(spreadsheetId=spreadsheet_id, fields="sheets.properties.title").execute()
+    try:
+        meta = sheets.get(spreadsheetId=spreadsheet_id, fields="sheets.properties.title").execute()
+    except Exception as exc:
+        err = str(exc)
+        if "403" in err or "PERMISSION_DENIED" in err:
+            sa_email = sa_info.get("client_email", "the service account email")
+            raise ValueError(
+                f"Permission denied. Open your Google Sheet → Share → add '{sa_email}' as Editor."
+            ) from exc
+        if "404" in err or "NOT_FOUND" in err:
+            raise ValueError(
+                f"Spreadsheet not found. Check that the Spreadsheet ID is correct "
+                f"(the long string in the URL between /d/ and /edit)."
+            ) from exc
+        raise ValueError(f"Google Sheets API error: {exc}") from exc
     existing_tabs = [s["properties"]["title"] for s in meta.get("sheets", [])]
     if sheet_name not in existing_tabs:
         sheets.batchUpdate(

@@ -11,9 +11,16 @@ const ITG_META = {
     desc: 'Automatically add every submission as a new row in a Google Sheet.',
     color: '#059669', bg: '#ecfdf5', border: '#a7f3d0',
     fields: [
-      { key: 'spreadsheet_id', label: 'Spreadsheet ID', placeholder: 'From the Google Sheet URL (between /d/ and /edit)', required: true },
-      { key: 'sheet_name',     label: 'Sheet / Tab Name', placeholder: 'Sheet1', required: false },
-      { key: 'service_account_json', label: 'Service Account JSON', placeholder: 'Paste the entire JSON content here...', type: 'textarea', required: true },
+      { key: 'spreadsheet_id', label: 'Spreadsheet ID', placeholder: 'The long string in the Sheet URL between /d/ and /edit', required: true },
+      { key: 'sheet_name',     label: 'Sheet / Tab Name', placeholder: 'Sheet1 (leave blank for default)', required: false },
+      { key: 'service_account_json', label: 'Service Account JSON', placeholder: 'Paste the entire contents of your downloaded service-account.json file...', type: 'textarea', required: true },
+    ],
+    guide: [
+      'Go to Google Cloud Console → enable the Google Sheets API',
+      'Create a Service Account → download its JSON key file',
+      'Copy the client_email from the JSON (shown below after save)',
+      'Open your Google Sheet → Share → paste that email → grant Editor access',
+      'Copy the Spreadsheet ID from the URL (between /d/ and /edit) and paste above',
     ],
   },
   email: {
@@ -24,8 +31,15 @@ const ITG_META = {
       { key: 'smtp_host',    label: 'SMTP Host',    placeholder: 'smtp.gmail.com',  required: true },
       { key: 'smtp_port',    label: 'SMTP Port',    placeholder: '587',             required: true },
       { key: 'from_email',   label: 'From Email',   placeholder: 'you@gmail.com',   required: true },
-      { key: 'password',     label: 'App Password', placeholder: 'Gmail app password (16 chars)', type: 'password', required: true },
+      { key: 'password',     label: 'App Password', placeholder: 'Leave blank to keep existing password', type: 'password', required: false },
       { key: 'admin_email',  label: 'Admin Email',  placeholder: 'Notify this address on every submission', required: true },
+    ],
+    guide: [
+      'For Gmail: enable 2-Step Verification on your Google Account',
+      'Go to Google Account → Security → App Passwords',
+      'Generate an App Password for "Mail" — you get a 16-character code',
+      'Use smtp.gmail.com, port 587, your Gmail address, and that 16-char code as the password',
+      'Your regular Gmail password will NOT work — you must use an App Password',
     ],
   },
 }
@@ -41,9 +55,19 @@ function IntegrationConnectForm({ type, existing, onSave, onCancel, saving }) {
   })
   return (
     <div style={{ background: '#f8fafc', border: `1.5px solid ${meta.border}`, borderRadius: 12, padding: '18px 20px', marginTop: 12 }}>
-      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
         {meta.icon} Configure {meta.name}
       </h4>
+      {meta.guide && (
+        <div style={{ marginBottom: 14, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '10px 12px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', marginBottom: 6 }}>Setup Guide</div>
+          <ol style={{ margin: 0, paddingLeft: 18 }}>
+            {meta.guide.map((step, i) => (
+              <li key={i} style={{ fontSize: 11, color: '#78350f', marginBottom: 3, lineHeight: 1.5 }}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      )}
       {meta.fields.map(f => (
         <div key={f.key} style={{ marginBottom: 12 }}>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>{f.label}{f.required && ' *'}</label>
@@ -80,7 +104,7 @@ function IntegrationConnectForm({ type, existing, onSave, onCancel, saving }) {
   )
 }
 
-function IntegrationCard({ type, integration, onSave, onToggle, onDelete }) {
+function IntegrationCard({ type, integration, lastError, onSave, onToggle, onDelete }) {
   const meta = ITG_META[type]
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -94,6 +118,7 @@ function IntegrationCard({ type, integration, onSave, onToggle, onDelete }) {
 
   const isConnected = !!integration
   const isActive    = integration?.is_active
+  const saEmail     = integration?.config?.service_account_json?.client_email
 
   return (
     <div style={{ border: `1.5px solid ${isConnected ? meta.border : '#e2e8f0'}`, borderRadius: 14, padding: '16px 18px', background: isConnected ? meta.bg : '#fff', marginBottom: 12 }}>
@@ -104,6 +129,11 @@ function IntegrationCard({ type, integration, onSave, onToggle, onDelete }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{meta.name}</div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{meta.desc}</div>
+          {isConnected && type === 'google_sheets' && saEmail && (
+            <div style={{ marginTop: 5, fontSize: 11, color: '#059669', background: '#d1fae5', padding: '3px 8px', borderRadius: 6, display: 'inline-block' }}>
+              Share sheet with: <strong>{saEmail}</strong>
+            </div>
+          )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {isConnected ? (
@@ -133,6 +163,11 @@ function IntegrationCard({ type, integration, onSave, onToggle, onDelete }) {
           )}
         </div>
       </div>
+      {lastError && !open && (
+        <div style={{ marginTop: 10, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 11, color: '#dc2626' }}>
+          <strong>Last error:</strong> {lastError}
+        </div>
+      )}
       {open && (
         <IntegrationConnectForm type={type} existing={integration} onSave={handleSave} onCancel={() => setOpen(false)} saving={saving} />
       )}
@@ -163,13 +198,13 @@ function IntegrationsTab({ formId }) {
     setErr('')
     const processedConfig = { ...config }
 
+    // ── Google Sheets: parse service_account_json & handle edit without re-uploading ──
     if (type === 'google_sheets') {
       const sa = processedConfig.service_account_json
       const saIsEmpty = !sa || (typeof sa === 'string' && !sa.trim())
 
       if (saIsEmpty) {
         if (existingId) {
-          // Editing: JSON not changed — use PATCH to update only other fields
           const patchConfig = { ...processedConfig }
           delete patchConfig.service_account_json
           const res = await fetch(`/api/integrations/${existingId}/config`, {
@@ -205,6 +240,29 @@ function IntegrationsTab({ formId }) {
       }
     }
 
+    // ── Email: if password left blank while editing, PATCH to preserve existing password ──
+    if (type === 'email') {
+      const pw = processedConfig.password
+      const pwIsEmpty = !pw || (typeof pw === 'string' && !pw.trim())
+      if (pwIsEmpty) {
+        if (existingId) {
+          const patchConfig = { ...processedConfig }
+          delete patchConfig.password
+          const res = await fetch(`/api/integrations/${existingId}/config`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...authHeaders() },
+            body: JSON.stringify({ config: patchConfig }),
+          })
+          const data = await res.json()
+          if (!res.ok) { setErr(data.detail || 'Failed to save'); return false }
+          reload()
+          return true
+        }
+        setErr('App Password is required. For Gmail: Google Account → Security → App Passwords.')
+        return false
+      }
+    }
+
     if (existingId) {
       await fetch(`/api/integrations/${existingId}`, { method: 'DELETE', headers: authHeaders() })
     }
@@ -232,6 +290,13 @@ function IntegrationsTab({ formId }) {
 
   const getItg = type => integrations.find(i => i.type === type) || null
 
+  const getLastError = type => {
+    const itg = getItg(type)
+    if (!itg) return null
+    const failedLog = logs.find(l => l.integration_id === itg.id && l.status === 'failed')
+    return failedLog?.error_message || null
+  }
+
   if (loading) return (
     <div style={{ padding: '40px 0', textAlign: 'center' }}>
       <div style={{ width: 28, height: 28, border: '3px solid #e2e8f0', borderTopColor: '#1a56db', borderRadius: '50%', animation: 'spin .8s linear infinite', margin: '0 auto 10px' }} />
@@ -253,7 +318,7 @@ function IntegrationsTab({ formId }) {
       )}
 
       {Object.keys(ITG_META).map(type => (
-        <IntegrationCard key={type} type={type} integration={getItg(type)} onSave={handleSave} onToggle={handleToggle} onDelete={handleDelete} />
+        <IntegrationCard key={type} type={type} integration={getItg(type)} lastError={getLastError(type)} onSave={handleSave} onToggle={handleToggle} onDelete={handleDelete} />
       ))}
 
       {/* Recent logs */}
@@ -283,11 +348,6 @@ function IntegrationsTab({ formId }) {
               )
             })}
           </div>
-          {logs[0]?.error_message && (
-            <div style={{ marginTop: 8, padding: '8px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, fontSize: 11, color: '#dc2626', fontFamily: 'monospace' }}>
-              Last error: {logs[0].error_message}
-            </div>
-          )}
         </div>
       )}
     </div>

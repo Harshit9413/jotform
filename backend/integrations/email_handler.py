@@ -80,15 +80,32 @@ def run_email(config: Dict[str, Any], form_data: Dict[str, Any], form_title: str
     admin_email = config.get("admin_email", "").strip()
 
     if not from_email or not password or not admin_email:
-        raise ValueError("smtp config incomplete: from_email, password, admin_email required")
+        raise ValueError("Email config incomplete — from_email, password, and admin_email are required.")
 
     table_html = _html_table(form_data)
     sent: List[str] = []
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as server:
+    try:
+        smtp_conn = smtplib.SMTP(smtp_host, smtp_port, timeout=20)
+    except (OSError, TimeoutError) as exc:
+        raise ValueError(
+            f"Cannot connect to SMTP server {smtp_host}:{smtp_port}. "
+            f"Check host/port. Detail: {exc}"
+        ) from exc
+
+    with smtp_conn as server:
         server.ehlo()
-        server.starttls()
-        server.login(from_email, password)
+        try:
+            server.starttls()
+        except smtplib.SMTPException:
+            pass
+        try:
+            server.login(from_email, password)
+        except smtplib.SMTPAuthenticationError:
+            raise ValueError(
+                "SMTP login failed. For Gmail: generate a 16-character App Password at "
+                "Google Account → Security → App Passwords. Do not use your regular password."
+            )
 
         # ── Email 1: Admin notification ────────────────────────────────────
         msg = MIMEMultipart("alternative")
